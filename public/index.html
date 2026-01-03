@@ -212,6 +212,17 @@
         color: #f87171;
       }
 
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .actions button {
+        flex: 1;
+      }
+
       .controls-row {
         display: flex;
         gap: 10px;
@@ -302,6 +313,10 @@
         <button class="primary" id="generate">Generate Hypnotic Script</button>
         <label>Script output</label>
         <div class="output" id="script-output"></div>
+        <div class="actions">
+          <button class="secondary" id="clear-outputs">Clear outputs</button>
+          <button class="secondary" id="save-outputs">Save outputs</button>
+        </div>
       </section>
 
       <section>
@@ -310,6 +325,10 @@
           <p class="subhead">Recent requests, responses, and any errors.</p>
         </header>
         <div class="logs" id="log-output"></div>
+        <div class="actions">
+          <button class="secondary" id="download-log">Download log</button>
+          <button class="secondary" id="clear-log">Clear log</button>
+        </div>
       </section>
     </main>
 
@@ -336,6 +355,10 @@
       const generateBtn = document.getElementById('generate');
       const scriptOutput = document.getElementById('script-output');
       const logOutput = document.getElementById('log-output');
+      const clearOutputsBtn = document.getElementById('clear-outputs');
+      const saveOutputsBtn = document.getElementById('save-outputs');
+      const downloadLogBtn = document.getElementById('download-log');
+      const clearLogBtn = document.getElementById('clear-log');
 
       const setLoading = (element, loading) => {
         element.disabled = loading;
@@ -358,11 +381,15 @@
         entry.appendChild(text);
         logOutput.appendChild(entry);
         logOutput.scrollTop = logOutput.scrollHeight;
+        logs.push({ type, message, timestamp: new Date().toISOString() });
       };
 
       const clearLogs = () => {
         logOutput.innerHTML = '';
+        logs.length = 0;
       };
+
+      const logs = [];
 
       const listModels = async () => {
         modelSelect.innerHTML = '<option>Loading models...</option>';
@@ -445,6 +472,54 @@
         addLog('Removed uploaded scripts.');
       };
 
+      const clearOutputs = () => {
+        setOutput(styleOutput, '');
+        setOutput(scriptOutput, '');
+        styleSummary.value = '';
+        addLog('Cleared outputs and style summary.');
+      };
+
+      const saveOutputs = () => {
+        const content = [
+          '--- Style Output ---',
+          styleOutput.textContent || '(none)',
+          '',
+          '--- Script Output ---',
+          scriptOutput.textContent || '(none)'
+        ].join('\\n');
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'script-synthesiser-outputs.txt';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        addLog('Saved outputs to text file.');
+      };
+
+      const downloadLogs = () => {
+        if (!logs.length) {
+          addLog('No log entries to download.', 'error');
+          return;
+        }
+        const content = logs
+          .map((entry) => `[${entry.timestamp}] ${entry.type.toUpperCase()}: ${entry.message}`)
+          .join('\\n');
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'script-synthesiser-log.txt';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        addLog('Downloaded log file.');
+      };
+
+
       const analyzeStyle = async () => {
         const model = modelSelect.value;
         if (!model) return alert('Please select a model.');
@@ -511,12 +586,20 @@
       analyzeBtn.dataset.defaultText = 'Analyse Style';
       generateBtn.dataset.defaultText = 'Generate Hypnotic Script';
       clearFilesBtn.dataset.defaultText = 'Remove uploads';
+      clearOutputsBtn.dataset.defaultText = 'Clear outputs';
+      saveOutputsBtn.dataset.defaultText = 'Save outputs';
+      downloadLogBtn.dataset.defaultText = 'Download log';
+      clearLogBtn.dataset.defaultText = 'Clear log';
 
       refreshBtn.addEventListener('click', listModels);
       sendChatBtn.addEventListener('click', sendChat);
       analyzeBtn.addEventListener('click', analyzeStyle);
       generateBtn.addEventListener('click', generateScript);
       clearFilesBtn.addEventListener('click', clearFiles);
+      clearOutputsBtn.addEventListener('click', clearOutputs);
+      saveOutputsBtn.addEventListener('click', saveOutputs);
+      downloadLogBtn.addEventListener('click', downloadLogs);
+      clearLogBtn.addEventListener('click', clearLogs);
 
       listModels();
       clearLogs();
