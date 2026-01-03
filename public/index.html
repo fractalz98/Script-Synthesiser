@@ -16,6 +16,8 @@
         --border: #2f2149;
         --glass: rgba(255, 255, 255, 0.04);
         --shadow: 0 20px 70px rgba(0, 0, 0, 0.35);
+        --bg-photo: none;
+        --bg-photo-opacity: 0.18;
       }
 
       * {
@@ -26,10 +28,16 @@
         margin: 0;
         padding: 0;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        background: radial-gradient(circle at 15% 20%, rgba(244, 114, 182, 0.18), transparent 30%),
+        background-color: var(--bg);
+        background-image:
+          radial-gradient(circle at 15% 20%, rgba(244, 114, 182, 0.18), transparent 30%),
           radial-gradient(circle at 80% 10%, rgba(251, 113, 133, 0.14), transparent 32%),
           radial-gradient(circle at 50% 90%, rgba(219, 39, 119, 0.12), transparent 28%),
-          var(--bg);
+          linear-gradient(rgba(10, 8, 21, 0.4), rgba(10, 8, 21, 0.7)),
+          var(--bg-photo);
+        background-size: auto, auto, auto, cover, cover;
+        background-repeat: no-repeat;
+        background-position: center;
         color: var(--text);
         min-height: 100vh;
       }
@@ -397,6 +405,24 @@
         </div>
       </div>
 
+      <section>
+        <header>
+          <h2>Workspace Controls</h2>
+          <p class="subhead">Change the background, toggle live streaming, and manage persistence.</p>
+        </header>
+        <label for="bg-input">Background image URL (optional)</label>
+        <div class="controls-row">
+          <input id="bg-input" type="url" placeholder="https://example.com/image.jpg" />
+          <button class="secondary" id="apply-bg">Apply</button>
+          <button class="secondary" id="clear-bg">Clear</button>
+        </div>
+        <div class="row">
+          <label class="pill"><input type="checkbox" id="live-style" checked /> Live style stream</label>
+          <label class="pill"><input type="checkbox" id="live-script" checked /> Live script stream</label>
+          <label class="pill"><input type="checkbox" id="persist-state" checked /> Persistent workspace</label>
+        </div>
+      </section>
+
       <main>
       <section>
         <header>
@@ -482,6 +508,7 @@
       const modelSelect = document.getElementById('model');
       const refreshBtn = document.getElementById('refresh-models');
       const topRefreshBtn = document.getElementById('top-refresh');
+      const topClearBtn = document.getElementById('top-clear');
       const sendChatBtn = document.getElementById('send-chat');
       const chatOutput = document.getElementById('chat-output');
       const systemPrompt = document.getElementById('system-prompt');
@@ -508,11 +535,12 @@
       const saveOutputsBtn = document.getElementById('save-outputs');
       const downloadLogBtn = document.getElementById('download-log');
       const clearLogBtn = document.getElementById('clear-log');
-      const statModels = document.getElementById('stat-models');
-      const statModelsSub = document.getElementById('stat-models-sub');
-      const statUploads = document.getElementById('stat-uploads');
-      const statLogs = document.getElementById('stat-logs');
-      const statWorkspace = document.getElementById('stat-workspace');
+      const bgInput = document.getElementById('bg-input');
+      const applyBgBtn = document.getElementById('apply-bg');
+      const clearBgBtn = document.getElementById('clear-bg');
+      const liveStyleToggle = document.getElementById('live-style');
+      const liveScriptToggle = document.getElementById('live-script');
+      const persistToggle = document.getElementById('persist-state');
       const statModels = document.getElementById('stat-models');
       const statModelsSub = document.getElementById('stat-models-sub');
       const statUploads = document.getElementById('stat-uploads');
@@ -520,6 +548,12 @@
       const statWorkspace = document.getElementById('stat-workspace');
 
       const logs = [];
+      const STATE_KEY = 'script-synthesiser-state';
+      let restoringState = false;
+
+      const applyBackground = (url) => {
+        document.documentElement.style.setProperty('--bg-photo', url ? `url('${url}')` : 'none');
+      };
 
       const setLoading = (element, loading) => {
         element.disabled = loading;
@@ -542,6 +576,7 @@
       const setOutput = (element, content) => {
         element.textContent = content || 'No response yet';
         updateStats();
+        if (!restoringState) saveState();
       };
 
       const addLog = (message, type = 'ok') => {
@@ -558,12 +593,113 @@
         logOutput.scrollTop = logOutput.scrollHeight;
         logs.push({ type, message, timestamp: new Date().toISOString() });
         updateStats();
+        if (!restoringState) saveState();
       };
 
       const clearLogs = () => {
         logOutput.innerHTML = '';
         logs.length = 0;
         statLogs.textContent = '0';
+        saveState();
+      };
+
+      const saveState = () => {
+        if (!persistToggle.checked) {
+          localStorage.removeItem(STATE_KEY);
+          return;
+        }
+        const state = {
+          model: modelSelect.value,
+          systemPrompt: systemPrompt.value,
+          userPrompt: userPrompt.value,
+          theme: theme.value,
+          length: lengthInput.value,
+          intensity: intensityInput.value,
+          styleSummary: styleSummary.value,
+          styleOutput: styleOutput.textContent,
+          scriptOutput: scriptOutput.textContent,
+          background: bgInput.value,
+          liveStyle: liveStyleToggle.checked,
+          liveScript: liveScriptToggle.checked,
+          persist: persistToggle.checked,
+          logs: logs.slice(-150)
+        };
+        localStorage.setItem(STATE_KEY, JSON.stringify(state));
+      };
+
+      const restoreState = () => {
+        const raw = localStorage.getItem(STATE_KEY);
+        if (!raw) return;
+        try {
+          restoringState = true;
+          const state = JSON.parse(raw);
+          persistToggle.checked = state.persist ?? true;
+          liveStyleToggle.checked = state.liveStyle ?? true;
+          liveScriptToggle.checked = state.liveScript ?? true;
+          bgInput.value = state.background || '';
+          applyBackground(state.background);
+          systemPrompt.value = state.systemPrompt || '';
+          userPrompt.value = state.userPrompt || '';
+          theme.value = state.theme || '';
+          lengthInput.value = state.length || lengthInput.value;
+          intensityInput.value = state.intensity || intensityInput.value;
+          styleSummary.value = state.styleSummary || '';
+          setOutput(styleOutput, state.styleOutput || '');
+          setOutput(scriptOutput, state.scriptOutput || '');
+          (state.logs || []).forEach((entry) => addLog(entry.message, entry.type));
+        } catch (error) {
+          console.error('Could not restore state', error);
+        } finally {
+          restoringState = false;
+          updateStats();
+        }
+      };
+
+      const streamCompletion = async (url, payload, onText) => {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok || !response.body) {
+          throw new Error(`Stream failed with status ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let aggregated = '';
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split('\n\n');
+          buffer = parts.pop();
+          for (const part of parts) {
+            const lines = part.split('\n').filter((line) => line.startsWith('data:'));
+            const dataStr = lines.map((line) => line.replace(/^data:\s*/, '')).join('\n').trim();
+            if (!dataStr) continue;
+            if (dataStr === '[DONE]') {
+              return aggregated;
+            }
+            try {
+              const json = JSON.parse(dataStr);
+              const delta =
+                json?.choices?.[0]?.delta?.content ||
+                json?.choices?.[0]?.message?.content ||
+                '';
+              if (delta) {
+                aggregated += delta;
+                onText(aggregated);
+              }
+            } catch (error) {
+              console.warn('Stream parse error', error);
+            }
+          }
+        }
+        return aggregated;
       };
 
       const listModels = async () => {
@@ -713,16 +849,30 @@
         setLoading(analyzeBtn, true);
         setOutput(styleOutput, '');
         try {
-          const response = await fetch('/api/analyze-style', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model, samples })
-          });
-          const data = await response.json();
-          const content = data?.choices?.[0]?.message?.content || 'No style returned';
-          setOutput(styleOutput, content);
-          styleSummary.value = content;
-          addLog(`Style analysis completed with model ${model}.`);
+          if (liveStyleToggle.checked) {
+            const finalText = await streamCompletion(
+              '/api/analyze-style/stream',
+              { model, samples },
+              (text) => {
+                setOutput(styleOutput, text);
+                styleSummary.value = text;
+              }
+            );
+            styleSummary.value = finalText || styleSummary.value;
+            addLog(`Style analysis streamed with model ${model}.`);
+          } else {
+            const response = await fetch('/api/analyze-style', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ model, samples })
+            });
+            const data = await response.json();
+            const content = data?.choices?.[0]?.message?.content || 'No style returned';
+            setOutput(styleOutput, content);
+            styleSummary.value = content;
+            addLog(`Style analysis completed with model ${model}.`);
+          }
+          saveState();
         } catch (error) {
           setOutput(styleOutput, 'Error synthesising style.');
           console.error(error);
@@ -741,21 +891,37 @@
         setLoading(generateBtn, true);
         setOutput(scriptOutput, '');
         try {
-          const response = await fetch('/api/generate-script', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model,
-              styleSummary: summary,
-              length: Number(lengthInput.value) || 400,
-              intensity: Number(intensityInput.value) || 6,
-              theme: theme.value.trim()
-            })
-          });
-          const data = await response.json();
-          const content = data?.choices?.[0]?.message?.content || 'No script returned';
-          setOutput(scriptOutput, content);
-          addLog(`Script generation completed with model ${model}.`);
+          if (liveScriptToggle.checked) {
+            const final = await streamCompletion(
+              '/api/generate-script/stream',
+              {
+                model,
+                styleSummary: summary,
+                length: Number(lengthInput.value) || 400,
+                intensity: Number(intensityInput.value) || 6,
+                theme: theme.value.trim()
+              },
+              (text) => setOutput(scriptOutput, text)
+            );
+            addLog(`Script generation streamed with model ${model}.`);
+          } else {
+            const response = await fetch('/api/generate-script', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model,
+                styleSummary: summary,
+                length: Number(lengthInput.value) || 400,
+                intensity: Number(intensityInput.value) || 6,
+                theme: theme.value.trim()
+              })
+            });
+            const data = await response.json();
+            const content = data?.choices?.[0]?.message?.content || 'No script returned';
+            setOutput(scriptOutput, content);
+            addLog(`Script generation completed with model ${model}.`);
+          }
+          saveState();
         } catch (error) {
           setOutput(scriptOutput, 'Error generating script.');
           console.error(error);
@@ -793,9 +959,27 @@
       downloadLogBtn.addEventListener('click', downloadLogs);
       clearLogBtn.addEventListener('click', clearLogs);
       topClearBtn.addEventListener('click', clearOutputs);
+      applyBgBtn.addEventListener('click', () => {
+        applyBackground(bgInput.value);
+        addLog('Applied custom background image.');
+        saveState();
+      });
+      clearBgBtn.addEventListener('click', () => {
+        bgInput.value = '';
+        applyBackground('');
+        addLog('Cleared background image.');
+        saveState();
+      });
+      persistToggle.addEventListener('change', saveState);
+      liveStyleToggle.addEventListener('change', saveState);
+      liveScriptToggle.addEventListener('change', saveState);
+      [systemPrompt, userPrompt, theme, lengthInput, intensityInput, styleSummary].forEach((el) => {
+        el.addEventListener('input', () => saveState());
+      });
 
+      restoreState();
       listModels();
-      clearLogs();
+      if (!logs.length) clearLogs();
       updateStats();
     </script>
   </body>

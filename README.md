@@ -6,6 +6,7 @@ Web UI for LM Studio that can:
 - Upload `.txt` samples to synthesise a reusable master style.
 - Generate hypnotic scripts with configurable length and intensity based on that style.
 - Clear uploaded samples and view an in-app activity log for requests and errors.
+- Stream live generation for style synthesis and scripts, persist workspace state, and set a custom background image.
 
 ## Prerequisites
 
