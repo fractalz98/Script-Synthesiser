@@ -1,0 +1,17 @@
+{
+  "name": "script-synthesiser",
+  "version": "1.0.0",
+  "description": "Web UI for LM Studio to synthesise styles and generate hypnotic scripts.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "echo \"No automated tests available yet\""
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
