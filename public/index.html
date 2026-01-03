@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Script Synthesiser – LM Studio UI</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #111827;
+        --accent: #22c55e;
+        --accent-2: #38bdf8;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --border: #1f2937;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background: radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.08), transparent 25%),
+          radial-gradient(circle at 80% 0%, rgba(34, 197, 94, 0.08), transparent 25%),
+          var(--bg);
+        color: var(--text);
+      }
+
+      header {
+        padding: 24px 32px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.9);
+        backdrop-filter: blur(10px);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 26px;
+        letter-spacing: 0.3px;
+      }
+
+      .subhead {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      main {
+        padding: 24px 32px 48px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        grid-gap: 18px;
+      }
+
+      section {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+      }
+
+      section header {
+        padding: 0;
+        background: none;
+        border: none;
+        position: static;
+        margin-bottom: 12px;
+      }
+
+      section h2 {
+        margin: 0 0 6px;
+        font-size: 18px;
+      }
+
+      label {
+        display: block;
+        margin: 12px 0 6px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      input, select, textarea, button {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: #0b1221;
+        color: var(--text);
+        font-size: 14px;
+      }
+
+      textarea {
+        min-height: 120px;
+        resize: vertical;
+        line-height: 1.5;
+      }
+
+      button {
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.15s ease;
+      }
+
+      button.primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        border: none;
+        color: #0b1221;
+        box-shadow: 0 8px 20px rgba(56, 189, 248, 0.3);
+      }
+
+      button.secondary {
+        background: #0b1221;
+        border: 1px solid var(--border);
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .row > * {
+        flex: 1;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: #0b1221;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .output {
+        background: #0b1221;
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        min-height: 140px;
+        white-space: pre-wrap;
+        line-height: 1.5;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        background: rgba(56, 189, 248, 0.1);
+        padding: 6px 10px;
+        border-radius: 8px;
+        color: var(--accent-2);
+        margin-left: 8px;
+      }
+
+      ul.file-list {
+        list-style: none;
+        padding: 0;
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      ul.file-list li {
+        padding: 4px 0;
+      }
+
+      .logs {
+        background: #0b1221;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px;
+        height: 200px;
+        overflow: auto;
+        font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--muted);
+      }
+
+      .log-entry {
+        margin-bottom: 8px;
+      }
+
+      .log-entry .label {
+        display: inline-block;
+        min-width: 60px;
+        font-weight: 600;
+      }
+
+      .log-entry.ok .label {
+        color: var(--accent);
+      }
+
+      .log-entry.error .label {
+        color: #f87171;
+      }
+
+      .controls-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .controls-row button {
+        flex: 1;
+      }
+
+      @media (max-width: 720px) {
+        main {
+          grid-template-columns: 1fr;
+          padding: 18px;
+        }
+
+        .row {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Script Synthesiser</h1>
+      <p class="subhead">Connect to your LM Studio server, blend sample styles, and generate hypnotic scripts.</p>
+    </header>
+
+    <main>
+      <section>
+        <header>
+          <h2>LM Studio Connection</h2>
+          <p class="subhead">Select a loaded model and explore general chat or completions.</p>
+        </header>
+        <label for="model">Loaded model</label>
+        <div class="row">
+          <select id="model"></select>
+          <button class="secondary" id="refresh-models">Refresh</button>
+        </div>
+        <label for="system-prompt">System prompt</label>
+        <textarea id="system-prompt" placeholder="You are a helpful assistant."></textarea>
+        <label for="user-prompt">User prompt</label>
+        <textarea id="user-prompt" placeholder="Ask anything or request completions..."></textarea>
+        <div class="row">
+          <div class="pill">Temperature <input type="number" id="temperature" min="0" max="1" step="0.1" value="0.7" /></div>
+          <div class="pill">Max tokens <input type="number" id="max-tokens" min="16" max="4096" step="16" value="512" /></div>
+        </div>
+        <button class="primary" id="send-chat">Send to LM Studio</button>
+        <label>Response</label>
+        <div class="output" id="chat-output"></div>
+      </section>
+
+      <section>
+        <header>
+          <h2>Style Synthesiser <span class="badge">TXT uploads</span></h2>
+          <p class="subhead">Upload sample .txt files to extract a reusable master style.</p>
+        </header>
+        <label for="file-input">Sample files</label>
+        <input id="file-input" type="file" accept=".txt" multiple />
+        <ul class="file-list" id="file-list"></ul>
+        <div class="controls-row">
+          <button class="secondary" id="clear-files">Remove uploads</button>
+          <button class="primary" id="analyze">Analyse Style</button>
+        </div>
+        <label>Master style</label>
+        <div class="output" id="style-output"></div>
+      </section>
+
+      <section>
+        <header>
+          <h2>Hypnotic Script Generator</h2>
+          <p class="subhead">Use the synthesised style to craft scripts with precise length and intensity.</p>
+        </header>
+        <label for="theme">Theme or focus (optional)</label>
+        <input id="theme" type="text" placeholder="Calm confidence, restful sleep, motivation..." />
+        <div class="row">
+          <div>
+            <label for="length">Approximate length (words)</label>
+            <input id="length" type="number" min="100" max="3000" step="50" value="400" />
+          </div>
+          <div>
+            <label for="intensity">Intensity (1-10)</label>
+            <input id="intensity" type="number" min="1" max="10" step="1" value="6" />
+          </div>
+        </div>
+        <label for="style-summary">Style summary</label>
+        <textarea id="style-summary" placeholder="Paste or use the synthesised style above"></textarea>
+        <button class="primary" id="generate">Generate Hypnotic Script</button>
+        <label>Script output</label>
+        <div class="output" id="script-output"></div>
+      </section>
+
+      <section>
+        <header>
+          <h2>Activity & Errors</h2>
+          <p class="subhead">Recent requests, responses, and any errors.</p>
+        </header>
+        <div class="logs" id="log-output"></div>
+      </section>
+    </main>
+
+    <script>
+      const modelSelect = document.getElementById('model');
+      const refreshBtn = document.getElementById('refresh-models');
+      const sendChatBtn = document.getElementById('send-chat');
+      const chatOutput = document.getElementById('chat-output');
+      const systemPrompt = document.getElementById('system-prompt');
+      const userPrompt = document.getElementById('user-prompt');
+      const temperature = document.getElementById('temperature');
+      const maxTokens = document.getElementById('max-tokens');
+
+      const fileInput = document.getElementById('file-input');
+      const fileList = document.getElementById('file-list');
+      const analyzeBtn = document.getElementById('analyze');
+      const clearFilesBtn = document.getElementById('clear-files');
+      const styleOutput = document.getElementById('style-output');
+
+      const theme = document.getElementById('theme');
+      const lengthInput = document.getElementById('length');
+      const intensityInput = document.getElementById('intensity');
+      const styleSummary = document.getElementById('style-summary');
+      const generateBtn = document.getElementById('generate');
+      const scriptOutput = document.getElementById('script-output');
+      const logOutput = document.getElementById('log-output');
+
+      const setLoading = (element, loading) => {
+        element.disabled = loading;
+        element.textContent = loading ? 'Working...' : element.dataset.defaultText;
+      };
+
+      const setOutput = (element, content) => {
+        element.textContent = content || 'No response yet';
+      };
+
+      const addLog = (message, type = 'ok') => {
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        const label = document.createElement('span');
+        label.className = 'label';
+        label.textContent = type === 'error' ? 'ERROR' : 'INFO';
+        const text = document.createElement('span');
+        text.textContent = ` ${message}`;
+        entry.appendChild(label);
+        entry.appendChild(text);
+        logOutput.appendChild(entry);
+        logOutput.scrollTop = logOutput.scrollHeight;
+      };
+
+      const clearLogs = () => {
+        logOutput.innerHTML = '';
+      };
+
+      const listModels = async () => {
+        modelSelect.innerHTML = '<option>Loading models...</option>';
+        try {
+          const response = await fetch('/api/models');
+          const data = await response.json();
+          const models = data.data || [];
+          modelSelect.innerHTML = '';
+          if (!models.length) {
+            modelSelect.innerHTML = '<option>No models detected</option>';
+            addLog('No models detected from LM Studio.', 'error');
+            return;
+          }
+          models.forEach((model) => {
+            const option = document.createElement('option');
+            option.value = model.id;
+            option.textContent = model.id;
+            modelSelect.appendChild(option);
+          });
+          addLog(`Loaded ${models.length} model(s) from LM Studio.`);
+        } catch (error) {
+          modelSelect.innerHTML = '<option>Could not reach LM Studio</option>';
+          console.error(error);
+          addLog('Could not reach LM Studio while listing models.', 'error');
+        }
+      };
+
+      const sendChat = async () => {
+        const model = modelSelect.value;
+        if (!model) return alert('Please select a model.');
+        const messages = [];
+        if (systemPrompt.value.trim()) {
+          messages.push({ role: 'system', content: systemPrompt.value.trim() });
+        }
+        messages.push({ role: 'user', content: userPrompt.value.trim() });
+
+        sendChatBtn.dataset.defaultText = 'Send to LM Studio';
+        setLoading(sendChatBtn, true);
+        setOutput(chatOutput, '');
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model,
+              messages,
+              temperature: Number(temperature.value) || 0.7,
+              maxTokens: Number(maxTokens.value) || 512
+            })
+          });
+          const data = await response.json();
+          const content = data?.choices?.[0]?.message?.content || 'No response';
+          setOutput(chatOutput, content);
+          addLog(`Chat request completed with model ${model}.`);
+        } catch (error) {
+          setOutput(chatOutput, 'Error reaching LM Studio.');
+          console.error(error);
+          addLog(`Chat request failed: ${error.message || error}`, 'error');
+        } finally {
+          setLoading(sendChatBtn, false);
+        }
+      };
+
+      const readFiles = async () => {
+        const files = Array.from(fileInput.files || []);
+        fileList.innerHTML = '';
+        if (!files.length) return [];
+        files.forEach((file) => {
+          const li = document.createElement('li');
+          li.textContent = `${file.name} (${Math.round(file.size / 1024)}kb)`;
+          fileList.appendChild(li);
+        });
+        const contents = await Promise.all(files.map((file) => file.text()));
+        return contents;
+      };
+
+      const clearFiles = () => {
+        fileInput.value = '';
+        fileList.innerHTML = '';
+        addLog('Removed uploaded scripts.');
+      };
+
+      const analyzeStyle = async () => {
+        const model = modelSelect.value;
+        if (!model) return alert('Please select a model.');
+        const samples = await readFiles();
+        if (!samples.length) return alert('Attach at least one .txt file.');
+        analyzeBtn.dataset.defaultText = 'Analyse Style';
+        setLoading(analyzeBtn, true);
+        setOutput(styleOutput, '');
+        try {
+          const response = await fetch('/api/analyze-style', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model, samples })
+          });
+          const data = await response.json();
+          const content = data?.choices?.[0]?.message?.content || 'No style returned';
+          setOutput(styleOutput, content);
+          styleSummary.value = content;
+          addLog(`Style analysis completed with model ${model}.`);
+        } catch (error) {
+          setOutput(styleOutput, 'Error synthesising style.');
+          console.error(error);
+          addLog(`Style analysis failed: ${error.message || error}`, 'error');
+        } finally {
+          setLoading(analyzeBtn, false);
+        }
+      };
+
+      const generateScript = async () => {
+        const model = modelSelect.value;
+        const summary = styleSummary.value.trim();
+        if (!model) return alert('Please select a model.');
+        if (!summary) return alert('Add a style summary first.');
+        generateBtn.dataset.defaultText = 'Generate Hypnotic Script';
+        setLoading(generateBtn, true);
+        setOutput(scriptOutput, '');
+        try {
+          const response = await fetch('/api/generate-script', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model,
+              styleSummary: summary,
+              length: Number(lengthInput.value) || 400,
+              intensity: Number(intensityInput.value) || 6,
+              theme: theme.value.trim()
+            })
+          });
+          const data = await response.json();
+          const content = data?.choices?.[0]?.message?.content || 'No script returned';
+          setOutput(scriptOutput, content);
+          addLog(`Script generation completed with model ${model}.`);
+        } catch (error) {
+          setOutput(scriptOutput, 'Error generating script.');
+          console.error(error);
+          addLog(`Script generation failed: ${error.message || error}`, 'error');
+        } finally {
+          setLoading(generateBtn, false);
+        }
+      };
+
+      refreshBtn.dataset.defaultText = 'Refresh';
+      sendChatBtn.dataset.defaultText = 'Send to LM Studio';
+      analyzeBtn.dataset.defaultText = 'Analyse Style';
+      generateBtn.dataset.defaultText = 'Generate Hypnotic Script';
+      clearFilesBtn.dataset.defaultText = 'Remove uploads';
+
+      refreshBtn.addEventListener('click', listModels);
+      sendChatBtn.addEventListener('click', sendChat);
+      analyzeBtn.addEventListener('click', analyzeStyle);
+      generateBtn.addEventListener('click', generateScript);
+      clearFilesBtn.addEventListener('click', clearFiles);
+
+      listModels();
+      clearLogs();
+    </script>
+  </body>
+</html>
