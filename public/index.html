@@ -290,6 +290,29 @@
         color: #f87171;
       }
 
+      .live-dot {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 12px;
+        background: rgba(251, 113, 133, 0.18);
+        color: #ffc7de;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .live-dot::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #fb7185;
+        box-shadow: 0 0 8px rgba(251, 113, 133, 0.8);
+        display: inline-block;
+      }
+
       .actions {
         display: flex;
         flex-wrap: wrap;
@@ -461,6 +484,9 @@
         </div>
         <label>Master style</label>
         <div class="output" id="style-output"></div>
+        <div class="actions">
+          <span class="live-dot" id="style-live-indicator">Live</span>
+        </div>
       </section>
 
       <section>
@@ -488,6 +514,7 @@
         <div class="actions">
           <button class="secondary" id="clear-outputs">Clear outputs</button>
           <button class="secondary" id="save-outputs">Save outputs</button>
+          <span class="live-dot" id="script-live-indicator">Live</span>
         </div>
       </section>
 
@@ -546,6 +573,8 @@
       const statUploads = document.getElementById('stat-uploads');
       const statLogs = document.getElementById('stat-logs');
       const statWorkspace = document.getElementById('stat-workspace');
+      const styleLiveIndicator = document.getElementById('style-live-indicator');
+      const scriptLiveIndicator = document.getElementById('script-live-indicator');
 
       const logs = [];
       const STATE_KEY = 'script-synthesiser-state';
@@ -577,6 +606,11 @@
         element.textContent = content || 'No response yet';
         updateStats();
         if (!restoringState) saveState();
+      };
+
+      const setLiveIndicator = (el, on) => {
+        el.style.opacity = on ? '1' : '0.45';
+        el.textContent = on ? 'Live' : 'Paused';
       };
 
       const addLog = (message, type = 'ok') => {
@@ -850,6 +884,7 @@
         setOutput(styleOutput, '');
         try {
           if (liveStyleToggle.checked) {
+            setLiveIndicator(styleLiveIndicator, true);
             const finalText = await streamCompletion(
               '/api/analyze-style/stream',
               { model, samples },
@@ -879,6 +914,7 @@
           addLog(`Style analysis failed: ${error.message || error}`, 'error');
         } finally {
           setLoading(analyzeBtn, false);
+          setLiveIndicator(styleLiveIndicator, liveStyleToggle.checked);
         }
       };
 
@@ -892,6 +928,7 @@
         setOutput(scriptOutput, '');
         try {
           if (liveScriptToggle.checked) {
+            setLiveIndicator(scriptLiveIndicator, true);
             const final = await streamCompletion(
               '/api/generate-script/stream',
               {
@@ -928,6 +965,7 @@
           addLog(`Script generation failed: ${error.message || error}`, 'error');
         } finally {
           setLoading(generateBtn, false);
+          setLiveIndicator(scriptLiveIndicator, liveScriptToggle.checked);
         }
       };
 
@@ -981,6 +1019,8 @@
       listModels();
       if (!logs.length) clearLogs();
       updateStats();
+      setLiveIndicator(styleLiveIndicator, liveStyleToggle.checked);
+      setLiveIndicator(scriptLiveIndicator, liveScriptToggle.checked);
     </script>
   </body>
 </html>

@@ -37,6 +37,7 @@ const streamLmStudio = async (endpoint, payload, req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
 
   const upstream = await fetch(`${lmStudioBaseUrl}${endpoint}`, {
     method: 'POST',
@@ -56,7 +57,7 @@ const streamLmStudio = async (endpoint, payload, req, res) => {
   req.on('close', () => controller.abort());
 
   for await (const chunk of upstream.body) {
-    res.write(chunk);
+    res.write(typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString());
   }
   res.end();
 };
